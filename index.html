@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Documentation and Code Assistant</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5',
+                        'secondary': '#6366f1',
+                        'indigo': {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles for a better drag-and-drop visual cue */
+        .drop-zone {
+            transition: all 0.2s ease-in-out;
+            border: 3px dashed #e5e7eb;
+        }
+        .drop-zone.drag-over {
+            border-color: #4f46e5;
+            background-color: #eff6ff;
+        }
+        .file-list-item {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Style for pre-formatted output (like code blocks from the AI) */
+        #outputArea code {
+            display: block;
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+        #outputArea h3 {
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4 font-sans">
+
+    <div class="w-full max-w-6xl bg-white shadow-2xl rounded-xl p-8 space-y-8">
+        <header class="text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-800">
+                Project Development Hub
+            </h1>
+            <p class="text-gray-500 mt-2">
+                Manage documentation and leverage AI for code quality in one place.
+            </p>
+        </header>
+
+        <div id="messageBox" class="p-3 rounded-lg text-center font-medium hidden"></div>
+
+        <!-- File Upload Section -->
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- 1. Image / Screenshot Upload Panel -->
+            <div class="border border-gray-200 rounded-xl p-6 shadow-md bg-white">
+                <h2 class="text-xl font-semibold text-primary mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                    Screenshots & Images
+                </h2>
+
+                <label id="imageDropZone" for="imageInput" class="drop-zone flex flex-col items-center justify-center p-8 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <input type="file" id="imageInput" accept="image/*" multiple class="hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                    <p class="mt-2 text-sm text-gray-600 font-medium">Drag & drop screenshots here</p>
+                    <p class="text-xs text-gray-400">or click to browse (PNG, JPG, GIF)</p>
+                </label>
+
+                <div id="imageList" class="mt-4 space-y-2">
+                    <!-- Image files will be listed here -->
+                </div>
+            </div>
+
+            <!-- 2. Document / SRS Upload Panel -->
+            <div class="border border-gray-200 rounded-xl p-6 shadow-md bg-white">
+                <h2 class="text-xl font-semibold text-secondary mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+                    Documents & SRS Files
+                </h2>
+
+                <label id="docDropZone" for="docInput" class="drop-zone flex flex-col items-center justify-center p-8 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <input type="file" id="docInput" accept=".pdf,.doc,.docx,.txt" multiple class="hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                    <p class="mt-2 text-sm text-gray-600 font-medium">Drag & drop documents here</p>
+                    <p class="text-xs text-gray-400">or click to browse (PDF, DOCX, TXT)</p>
+                </label>
+
+                <div id="docList" class="mt-4 space-y-2">
+                    <!-- Document files will be listed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- New Code Assistant Section -->
+        <div class="mt-12 pt-8 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" x2="10" y1="4" y2="20"/></svg>
+                AI Code Assistant
+            </h2>
+            <div class="bg-indigo-50 p-6 rounded-xl shadow-inner space-y-4">
+                <div class="md:flex md:items-end md:space-x-4 space-y-4 md:space-y-0">
+                    <div class="flex-grow">
+                        <label for="codeAction" class="block text-sm font-medium text-gray-700 mb-1">Select Action</label>
+                        <select id="codeAction" class="w-full border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="analyze">Analyze Code: Review for best practices and efficiency</option>
+                            <option value="debug">Find & Fix Bugs: Identify and suggest corrections for errors</option>
+                            <option value="refactor">Refactor: Suggest cleaner, more modern implementations</option>
+                            <option value="generate">Generate Code: Write new code based on the prompt</option>
+                        </select>
+                    </div>
+                    <button id="analyzeButton" class="md:w-auto w-full flex-shrink-0 flex justify-center items-center py-3 px-6 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out" disabled>
+                        <svg id="analyzeIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        <span id="analyzeText">Analyze Code</span>
+                    </button>
+                </div>
+
+                <div>
+                    <label for="codeTextarea" class="block text-sm font-medium text-gray-700 mb-1">Paste or Type Code Here</label>
+                    <textarea id="codeTextarea" rows="10" class="w-full border border-gray-300 rounded-md shadow-sm p-3 font-mono text-sm focus:ring-indigo-500 focus:border-indigo-500 resize-none" placeholder="// Paste your code or, for code generation, enter your request (e.g., 'Python function to calculate Fibonacci sequence')"></textarea>
+                </div>
+
+
+                <div id="loadingIndicator" class="hidden text-center text-indigo-600 font-semibold p-4">
+                    <svg class="animate-spin h-5 w-5 mr-3 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing request...
+                </div>
+
+                <div id="outputArea" class="bg-white p-4 rounded-md border border-gray-200 overflow-auto max-h-96 text-gray-800">
+                    <p class="text-gray-500 italic">AI analysis results will appear here after you submit your code.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements for File Upload ---
+        const imageInput = document.getElementById('imageInput');
+        const docInput = document.getElementById('docInput');
+        const imageList = document.getElementById('imageList');
+        const docList = document.getElementById('docList');
+        const imageDropZone = document.getElementById('imageDropZone');
+        const docDropZone = document.getElementById('docDropZone');
+        const messageBox = document.getElementById('messageBox');
+
+        // --- DOM Elements for Code Assistant ---
+        const codeTextarea = document.getElementById('codeTextarea');
+        const codeAction = document.getElementById('codeAction');
+        const analyzeButton = document.getElementById('analyzeButton');
+        const analyzeText = document.getElementById('analyzeText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const outputArea = document.getElementById('outputArea');
+        const MODEL_NAME = 'gemini-2.5-flash-preview-09-2025';
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+
+        // --- Shared Utility Functions ---
+
+        function showMessage(text, type = 'success') {
+            messageBox.textContent = text;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
+
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else { // success
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            }
+
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 3000);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // --- File Upload Logic ---
+
+        function handleFiles(files, allowedMimePattern, displayElement, allowedExtensions) {
+            let filesAdded = 0;
+            let filesRejected = 0;
+            const allowedFileRegex = new RegExp(allowedMimePattern);
+            const isDocumentUpload = allowedMimePattern === 'document';
+
+            // Clear previous list
+            displayElement.innerHTML = '';
+
+            // This is a simulation, in a real app, files would be staged for server upload
+            Array.from(files).forEach(file => {
+                let isValid = false;
+
+                if (isDocumentUpload) {
+                    // Custom extension check for documents
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    if (allowedExtensions.includes('.' + extension)) {
+                        isValid = true;
+                    }
+                } else if (file.type.match(allowedFileRegex)) {
+                    // MIME type check for images
+                    isValid = true;
+                }
+
+                if (isValid) {
+                    filesAdded++;
+                    const listItem = document.createElement('div');
+                    listItem.className = 'file-list-item flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg';
+                    listItem.innerHTML = `
+                        <div class="flex items-center space-x-3 truncate">
+                            ${isDocumentUpload ? 
+                                `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L15 2z"/><polyline points="14 2 14 8 20 8"/></svg>` : 
+                                `<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14v-2.0000000000000004a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1V14"/><circle cx="9" cy="8" r="1"/><path d="m19 14-3.5-3.5a2 2 0 0 0-2.828 0L6 19"/></svg>`
+                            }
+                            <span class="text-sm font-medium text-gray-700 truncate">${file.name}</span>
+                        </div>
+                        <span class="text-xs text-gray-500 font-mono">${formatFileSize(file.size)}</span>
+                    `;
+                    displayElement.appendChild(listItem);
+                } else {
+                    filesRejected++;
+                }
+            });
+
+            if (filesAdded > 0) {
+                showMessage(`Successfully staged ${filesAdded} file(s) for upload.`, 'success');
+            }
+            if (filesRejected > 0) {
+                showMessage(`Warning: ${filesRejected} file(s) were rejected due to incorrect type.`, 'error');
+            }
+        }
+
+        // --- Code Assistant Logic ---
+
+        function handleCodeInput() {
+            // Enable button only if there is content in the textarea
+            analyzeButton.disabled = codeTextarea.value.trim().length === 0;
+            const action = codeAction.value;
+            const actionName = action.charAt(0).toUpperCase() + action.slice(1);
+            analyzeText.textContent = `${actionName} Code`;
+
+            // Adjust placeholder text based on selected action
+            if (action === 'generate') {
+                codeTextarea.placeholder = "Enter your request here (e.g., 'Python function to calculate Fibonacci sequence in one line')";
+            } else {
+                codeTextarea.placeholder = "// Paste your code or, for code generation, enter your request (e.g., 'Python function to calculate Fibonacci sequence')";
+            }
+        }
+
+        async function analyzeCode() {
+            const code = codeTextarea.value.trim();
+            const action = codeAction.value;
+
+            if (!code) {
+                showMessage("Please paste some code or enter a prompt.", 'error');
+                return;
+            }
+
+            // Set UI to loading state
+            analyzeButton.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+            outputArea.innerHTML = '<p class="text-gray-500 italic">AI analysis in progress...</p>';
+
+            let systemPrompt = "You are an expert software engineer and code assistant. Your task is to provide constructive, clear, and concise feedback.";
+            let userQuery = "";
+
+            // Determine the specific prompt based on the selected action
+            switch (action) {
+                case 'analyze':
+                    systemPrompt += " Analyze the provided code for security vulnerabilities, performance bottlenecks, and adherence to best practices for its inferred language. Provide a summary of the analysis followed by actionable suggestions and a clean, formatted code block if necessary.";
+                    userQuery = `Please analyze the following code:\n\n\`\`\`\n${code}\n\`\`\``;
+                    break;
+                case 'debug':
+                    systemPrompt += " Find and fix any bugs, logical errors, or potential runtime issues in the provided code. Explain what the bug was, why it occurred, and then provide the fully corrected and runnable code block.";
+                    userQuery = `Please debug and fix the errors in the following code:\n\n\`\`\`\n${code}\n\`\`\``;
+                    break;
+                case 'refactor':
+                    systemPrompt += " Refactor the provided code to improve readability, modularity, and use modern language features. Do not change the core functionality. Explain the refactoring choices and provide the refactored code block.";
+                    userQuery = `Please refactor the following code:\n\n\`\`\`\n${code}\n\`\`\``;
+                    break;
+                case 'generate':
+                    systemPrompt = "You are a world-class code generator. Write a complete, self-contained, and well-commented code snippet in the language requested by the user, or infer the language from the request. The code MUST be runnable. Present the final code within a single, appropriate code block, starting immediately with the code block without any introductory text.";
+                    userQuery = `Please generate the code described in this request: "${code}"`;
+                    break;
+            }
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            const maxRetries = 5;
+            let response = null;
+
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        break; // Success! Exit loop
+                    } else if (response.status === 429 && i < maxRetries - 1) {
+                        // Handle rate limiting (429) with exponential backoff
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; // Retry
+                    } else {
+                        throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    }
+                } catch (error) {
+                    if (i === maxRetries - 1) {
+                        console.error('Gemini API call failed after multiple retries:', error);
+                        showMessage(`Error: Failed to connect to the AI assistant. Please try again later.`, 'error');
+                        // Restore UI state
+                        analyzeButton.disabled = false;
+                        loadingIndicator.classList.add('hidden');
+                        outputArea.innerHTML = `<p class="text-red-600 font-medium">An unexpected error occurred during analysis.</p>`;
+                        return;
+                    }
+                }
+            }
+
+            // Process the successful response
+            try {
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const analysisText = candidate.content.parts[0].text;
+                    // Display the raw Markdown output
+                    outputArea.innerHTML = marked(analysisText);
+                    showMessage("Request complete!", 'success');
+                } else {
+                    throw new Error("Invalid response structure from API.");
+                }
+
+            } catch (e) {
+                console.error('Error processing API response:', e);
+                showMessage("Error: Could not parse AI response.", 'error');
+                outputArea.innerHTML = `<p class="text-red-600 font-medium">Error: Invalid response or empty content returned by the AI.</p>`;
+            }
+
+            // Restore UI state
+            analyzeButton.disabled = false;
+            loadingIndicator.classList.add('hidden');
+        }
+
+        // --- Markdown Renderer (basic inline implementation for better code display) ---
+        // Note: A full markdown library like 'marked.js' is usually used, but we'll simulate basic code block rendering
+        function marked(text) {
+            // 1. Convert code blocks: ```language\ncode\n``` to <pre><code>...</code></pre>
+            // This is a simple version, actual markdown parsing is complex
+            const html = text.replace(/```(.*?)?\n([\s\S]*?)```/g, (match, lang, code) => {
+                const language = lang.trim() || 'plaintext';
+                // Use a proper HTML structure for pre-formatted code blocks
+                return `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
+            }).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+              .replace(/\n/g, '<br>'); // Simple line breaks
+
+            return html;
+        }
+
+        // --- Event Listener Setup ---
+
+        window.onload = function() {
+            // 1. Image Upload
+            imageInput.addEventListener('change', (e) => {
+                // Image accepts attribute is sufficient for validation (image/*)
+                handleFiles(e.target.files, 'image/', imageList, []);
+            });
+
+            // 2. Document Upload
+            docInput.addEventListener('change', (e) => {
+                const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt'];
+                // Use 'document' as a custom pattern to trigger the extension check inside handleFiles
+                handleFiles(e.target.files, 'document', docList, allowedExtensions);
+            });
+
+            // 3. Code Assistant
+            codeTextarea.addEventListener('input', handleCodeInput);
+            codeAction.addEventListener('change', handleCodeInput);
+            analyzeButton.addEventListener('click', analyzeCode);
+            handleCodeInput(); // Initial check
+
+            // --- Drag-and-Drop Setup ---
+            function setupDragEvents(dropZone, fileInput) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+                });
+
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+                });
+
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+                });
+
+                dropZone.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    const changeEvent = new Event('change');
+                    fileInput.files = files;
+                    fileInput.dispatchEvent(changeEvent);
+                }, false);
+            }
+
+            // Apply drag-and-drop handlers to both zones
+            setupDragEvents(imageDropZone, imageInput);
+            setupDragEvents(docDropZone, docInput);
+        };
+    </script>
+</body>
+</html>
